@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmoEdu Test Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+        .success {
+            color: green;
+            margin-top: 10px;
+        }
+        .response-container {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>EmoEdu Test Page</h1>
+    
+    <div>
+        <h2>Register</h2>
+        <form id="register-form">
+            <div class="form-group">
+                <label for="register-name">Name</label>
+                <input type="text" id="register-name" required>
+            </div>
+            <div class="form-group">
+                <label for="register-email">Email</label>
+                <input type="email" id="register-email" required>
+            </div>
+            <div class="form-group">
+                <label for="register-password">Password</label>
+                <input type="password" id="register-password" required>
+            </div>
+            <div class="form-group">
+                <label for="register-role">Role</label>
+                <select id="register-role">
+                    <option value="student">Student</option>
+                    <option value="teacher">Teacher</option>
+                </select>
+            </div>
+            <button type="submit">Register</button>
+            <div id="register-result" class="error"></div>
+        </form>
+    </div>
+    
+    <div style="margin-top: 30px;">
+        <h2>Login</h2>
+        <form id="login-form">
+            <div class="form-group">
+                <label for="login-email">Email</label>
+                <input type="email" id="login-email" required>
+            </div>
+            <div class="form-group">
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" required>
+            </div>
+            <button type="submit">Login</button>
+            <div id="login-result" class="error"></div>
+        </form>
+    </div>
+    
+    <div style="margin-top: 30px;">
+        <h2>Response</h2>
+        <div id="response-container" class="response-container">No response yet</div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const registerForm = document.getElementById('register-form');
+            const loginForm = document.getElementById('login-form');
+            const registerResult = document.getElementById('register-result');
+            const loginResult = document.getElementById('login-result');
+            const responseContainer = document.getElementById('response-container');
+            
+            // Base URL
+            const baseUrl = 'http://localhost:5001/api';
+            
+            // Register form submission
+            registerForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const name = document.getElementById('register-name').value;
+                const email = document.getElementById('register-email').value;
+                const password = document.getElementById('register-password').value;
+                const role = document.getElementById('register-role').value;
+                
+                registerResult.textContent = 'Registering...';
+                registerResult.className = '';
+                
+                try {
+                    const response = await fetch(`${baseUrl}/auth/register`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ name, email, password, role })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        registerResult.textContent = 'Registration successful!';
+                        registerResult.className = 'success';
+                        registerForm.reset();
+                    } else {
+                        registerResult.textContent = data.message || 'Registration failed';
+                        registerResult.className = 'error';
+                    }
+                    
+                    // Display response
+                    responseContainer.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    
+                } catch (error) {
+                    registerResult.textContent = error.message || 'Error connecting to server';
+                    registerResult.className = 'error';
+                    responseContainer.innerHTML = `<pre>Error: ${error.message}</pre>`;
+                }
+            });
+            
+            // Login form submission
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                
+                loginResult.textContent = 'Logging in...';
+                loginResult.className = '';
+                
+                try {
+                    const response = await fetch(`${baseUrl}/auth/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email, password })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        loginResult.textContent = 'Login successful!';
+                        loginResult.className = 'success';
+                        loginForm.reset();
+                        
+                        // Store token in localStorage
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                    } else {
+                        loginResult.textContent = data.message || 'Login failed';
+                        loginResult.className = 'error';
+                    }
+                    
+                    // Display response
+                    responseContainer.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    
+                } catch (error) {
+                    loginResult.textContent = error.message || 'Error connecting to server';
+                    loginResult.className = 'error';
+                    responseContainer.innerHTML = `<pre>Error: ${error.message}</pre>`;
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmoEdu - Emotion-Based Education Platform</title>
+    <link rel="stylesheet" href="src/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <img src="src/images/logo.png" alt="EmoEdu Logo" class="logo-img">
+                <h1>EmoEdu</h1>
+            </div>
+            <nav class="main-nav">
+                <ul id="nav-menu">
+                    <li><a href="#" class="nav-link active" data-page="home">Home</a></li>
+                    <li><a href="#" class="nav-link" data-page="classes">Classes</a></li>
+                    <li><a href="#" class="nav-link" data-page="profile">Profile</a></li>
+                </ul>
+            </nav>
+            <div class="auth-buttons" id="auth-section">
+                <button id="login-btn" class="btn btn-outline">Login</button>
+                <button id="register-btn" class="btn btn-primary">Register</button>
+            </div>
+            <div class="user-profile" id="user-profile" style="display: none;">
+                <span id="user-name"></span>
+                <button id="logout-btn" class="btn btn-outline btn-sm">Logout</button>
+            </div>
+        </header>
+
+        <!-- Mobile Device Message for Camera Access -->
+        <div id="mobile-camera-help" class="mobile-camera-help" style="display: none;">
+            <div class="mobile-help-content">
+                <h3>Camera Access Required</h3>
+                <p>To use the video features in EmoEdu:</p>
+                <ol>
+                    <li>Make sure to allow camera and microphone access when prompted</li>
+                    <li>If using iOS, only Safari browser is fully supported</li>
+                    <li>If using Android, Chrome is recommended</li>
+                    <li>Check your device permissions in Settings if camera access is denied</li>
+                </ol>
+                <button id="dismiss-mobile-help" class="btn btn-primary">Got it</button>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <main class="main-content" id="main-content">
+            <!-- Home Page (Shown by default) -->
+            <section id="home-page" class="page">
+                <div class="hero">
+                    <h2>Welcome to EmoEdu</h2>
+                    <p>An innovative education platform that integrates emotion detection during live classes</p>
+                    <button id="get-started-btn" class="btn btn-primary btn-lg">Get Started</button>
+                </div>
+                <div class="features">
+                    <div class="feature-card">
+                        <i class="fas fa-video fa-3x"></i>
+                        <h3>Live Classes</h3>
+                        <p>Join interactive live classes with video and audio</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-smile fa-3x"></i>
+                        <h3>Emotion Detection</h3>
+                        <p>Real-time emotion analysis for better teaching strategies</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-chart-bar fa-3x"></i>
+                        <h3>Analytics</h3>
+                        <p>Detailed emotion analytics for teachers to improve engagement</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Classes Page -->
+            <section id="classes-page" class="page" style="display: none;">
+                <div class="page-header">
+                    <h2>My Classes</h2>
+                    <div id="teacher-controls" style="display: none;">
+                        <button id="create-class-btn" class="btn btn-primary">Create New Class</button>
+                    </div>
+                </div>
+                <div class="classes-container" id="classes-list">
+                    <!-- Classes will be loaded here -->
+                    <div class="loading">Loading your classes...</div>
+                </div>
+            </section>
+
+            <!-- Class Detail Page -->
+            <section id="class-detail-page" class="page" style="display: none;">
+                <div class="page-header">
+                    <button class="btn btn-outline btn-sm back-btn" id="back-to-classes-btn">
+                        <i class="fas fa-arrow-left"></i> Back to Classes
+                    </button>
+                    <h2 id="class-name">Class Name</h2>
+                    <div id="class-controls" class="class-controls">
+                        <!-- Controls will be added dynamically -->
+                    </div>
+                </div>
+                <div class="class-details">
+                    <div class="class-info">
+                        <p id="class-description"></p>
+                        <p><strong>Teacher:</strong> <span id="class-teacher"></span></p>
+                        <p><strong>Schedule:</strong> <span id="class-schedule"></span></p>
+                    </div>
+                    <div class="class-members">
+                        <h3>Students</h3>
+                        <ul id="student-list"></ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Live Class Page -->
+            <section id="live-class-page" class="page" style="display: none;">
+                <div class="live-class-container">
+                    <div class="video-container">
+                        <div class="main-video">
+                            <div id="teacher-video-container" class="video-frame">
+                                <video id="teacher-video" autoplay muted playsinline></video>
+                                <div class="video-label">Teacher</div>
+                            </div>
+                        </div>
+                        <div class="students-grid" id="students-grid">
+                            <!-- Student videos will be added here -->
+                        </div>
+                    </div>
+                    <div class="emotions-dashboard" id="emotions-dashboard">
+                        <h3>Class Emotions</h3>
+                        <div class="emotion-chart-container">
+                            <canvas id="emotion-chart"></canvas>
+                        </div>
+                        <div class="emotion-summary" id="emotion-summary">
+                            <!-- Emotion summary will be added here -->
+                        </div>
+                    </div>
+                </div>
+                <div class="controls-bar">
+                    <button id="toggle-video-btn" class="control-btn">
+                        <i class="fas fa-video"></i>
+                    </button>
+                    <button id="toggle-audio-btn" class="control-btn">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button id="share-screen-btn" class="control-btn">
+                        <i class="fas fa-desktop"></i>
+                    </button>
+                    <button id="leave-class-btn" class="control-btn control-btn-danger">
+                        <i class="fas fa-phone-slash"></i> Leave
+                    </button>
+                </div>
+            </section>
+
+            <!-- Profile Page -->
+            <section id="profile-page" class="page" style="display: none;">
+                <div class="page-header">
+                    <h2>My Profile</h2>
+                </div>
+                <div class="profile-container">
+                    <div class="profile-info">
+                        <div class="avatar">
+                            <i class="fas fa-user-circle fa-6x"></i>
+                        </div>
+                        <div class="info-details">
+                            <h3 id="profile-name"></h3>
+                            <p id="profile-email"></p>
+                            <p id="profile-role"></p>
+                        </div>
+                    </div>
+                    <div class="profile-edit">
+                        <h3>Edit Profile</h3>
+                        <form id="profile-form">
+                            <div class="form-group">
+                                <label for="profile-name-input">Name</label>
+                                <input type="text" id="profile-name-input" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="profile-email-input">Email</label>
+                                <input type="email" id="profile-email-input" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="profile-password-input">New Password</label>
+                                <input type="password" id="profile-password-input" class="form-control" placeholder="Leave blank to keep current password">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Modal Containers -->
+        <div class="modal" id="login-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Login</h3>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="login-form">
+                        <div class="form-group">
+                            <label for="login-email">Email</label>
+                            <input type="email" id="login-email" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="login-password">Password</label>
+                            <input type="password" id="login-password" class="form-control" required>
+                        </div>
+                        <div class="form-error" id="login-error"></div>
+                        <button type="submit" class="btn btn-primary btn-block">Login</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal" id="register-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Register</h3>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="register-form">
+                        <div class="form-group">
+                            <label for="register-name">Full Name</label>
+                            <input type="text" id="register-name" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-email">Email</label>
+                            <input type="email" id="register-email" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-password">Password</label>
+                            <input type="password" id="register-password" class="form-control" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label for="register-role">Role</label>
+                            <select id="register-role" class="form-control" required>
+                                <option value="student">Student</option>
+                                <option value="teacher">Teacher</option>
+                            </select>
+                        </div>
+                        <div class="form-error" id="register-error"></div>
+                        <button type="submit" class="btn btn-primary btn-block">Register</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal" id="create-class-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Create New Class</h3>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="create-class-form">
+                        <div class="form-group">
+                            <label for="class-name-input">Class Name</label>
+                            <input type="text" id="class-name-input" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="class-description-input">Description</label>
+                            <textarea id="class-description-input" class="form-control" required rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="class-day-input">Day</label>
+                            <select id="class-day-input" class="form-control" required>
+                                <option value="Monday">Monday</option>
+                                <option value="Tuesday">Tuesday</option>
+                                <option value="Wednesday">Wednesday</option>
+                                <option value="Thursday">Thursday</option>
+                                <option value="Friday">Friday</option>
+                                <option value="Saturday">Saturday</option>
+                                <option value="Sunday">Sunday</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="class-start-time-input">Start Time</label>
+                            <input type="time" id="class-start-time-input" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="class-end-time-input">End Time</label>
+                            <input type="time" id="class-end-time-input" class="form-control" required>
+                        </div>
+                        <div class="form-error" id="create-class-error"></div>
+                        <button type="submit" class="btn btn-primary btn-block">Create Class</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Files -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="src/js/api.js"></script>
+    <script src="src/js/auth.js"></script>
+    <script src="src/js/emotion-detector.js"></script>
+    <script src="src/js/media-diagnostics.js"></script>
+    <script src="src/js/device-test.js"></script>
+    <script src="src/js/classes.js"></script>
+    <script src="src/js/live-class.js"></script>
+    <script src="src/js/app.js"></script>
+</body>
+</html> 
